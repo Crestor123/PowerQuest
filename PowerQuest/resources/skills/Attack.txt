@@ -1,0 +1,11 @@
+{
+    "Name":         "Attack",
+    "Description":  "Physical attack; modified by Attack stat",
+    "Type":         "Offensive",
+    "Family":       "Martial",
+    "Stat":         "Attack",
+    "TargetStat":   "Health",
+    "FlatDamage":   "1",
+    "Multiplier":   "1.2",
+    "Turns":        "0"
+}

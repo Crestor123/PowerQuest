@@ -1,0 +1,11 @@
+{
+    "Name":     "Fighter",
+    "Health":   "30",
+    "Mana":     "4",
+    "Attack":   "5",
+    "Defense":  "8",
+    "Magic":    "2",
+    "Skills":   [
+        "Slash"
+    ]
+}

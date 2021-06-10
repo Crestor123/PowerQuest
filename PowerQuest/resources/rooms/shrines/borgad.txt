@@ -1,0 +1,6 @@
+{
+    "Monster":  false,
+    "Text":     "There is a shrine to Borgad, the god of battle. Borgad 
+                grants you a boon of battle.",
+    "Skills":   "Martial"
+}
