@@ -5,7 +5,7 @@
     "Family":       "Martial",
     "Stat":         "Attack",
     "TargetStat":   "Health",
-    "FlatDamage":   "1",
-    "Multiplier":   "1.2",
-    "Turns":        "0"
+    "FlatDamage":   1,
+    "Multiplier":   1,
+    "Turns":        0
 }
