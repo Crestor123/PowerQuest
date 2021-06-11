@@ -8,8 +8,6 @@ Set-StrictMode -Version Latest
 
 $classes = [System.Collections.ArrayList]::new()
 $chars = [System.Collections.ArrayList]::new()
-$rooms = [System.Collections.ArrayList]::new()
-$monsters = [System.Collections.ArrayList]::new()
 $classDir = $PSScriptRoot + ".\resources\classes"
 $charDir = $PSScriptRoot + ".\saves"
 $monsterDir = $PSScriptRoot + ".\resources\monsters"
@@ -18,6 +16,7 @@ $shrineDir = $PSScriptRoot + ".\resources\rooms\shrines"
 $skillDir = $PSScriptRoot + ".\resources\skills"
 $in = ""
 $index = 1
+$Turn = 1
 $Damage = 0
 $continue = $false
 
@@ -48,6 +47,7 @@ $CharacterTemp = [PSCustomObject]@{
 $Room = [PSCustomObject]@{
     Monster = $false
     Text = ""
+    SkillFamily = ""
     Skills = [System.Collections.ArrayList]::new()
 }
 
@@ -103,7 +103,11 @@ function New-Character()
         $in = Read-Host
         If ($in -match ".*\d+.*")
         {
-            Write-Host "A name may not contain numeric values"
+            Write-Host "A name may not contain numeric values."
+        }
+        ElseIf ($in -eq "")
+        {
+            Write-Host "Name cannot be blank."
         }
         Else 
         {
@@ -113,7 +117,7 @@ function New-Character()
     }
     $continue = $false
 
-    Write-Host "Please choose a class"
+    Write-Host "Please choose a class."
     If ($classes.count -eq 0)
     {
         Read-Class
@@ -183,7 +187,15 @@ function Import-Character($Name)
     $Character.NextLevel = $char.NextLevel
     $Character.Exp = $char.Exp
     $Character.FileName = $char.FileName
-    $Character.Skills = $char.skills
+    $Character.Skills
+    foreach($skill in $char.Skills)
+    {
+        If (!$Character.Skills.Contains($skill))
+        {
+            [void]$Character.Skills.Add($skill)
+        }
+    }
+    $Character.Skills
 }
 
 function Resume-Game()
@@ -191,12 +203,21 @@ function Resume-Game()
     #Prints list of characters to load
     $index = 1
     Write-Host "`n"
-    Write-Host "Please choose a character."
     foreach ($char in Get-ChildItem $charDir)
     {
         Import-Character -Name $char
         Write-Host "$index -" $Character.Name", Level" $Character.Level $Character.Class
         $index++
+    }
+    If ($chars.count -gt 0)
+    {
+        Write-Host "Please choose a character."
+    }
+    Else
+    {
+        #There are no characters to load
+        Write-Host "There are no characters to load."
+        $continue = $true
     }
     $index -= 1
     while ($continue -eq $false)
@@ -224,7 +245,6 @@ function Export-Character($Save)
     {
         #Saving over an existing character
         $charPath = $charDir + "\" + $Character.FileName
-        $Character.FileName
         $WriteChar = $Character | ConvertTo-Json
         $WriteChar | Out-File -FilePath $charPath
     }
@@ -260,6 +280,7 @@ function Export-Character($Save)
 function New-Enemy()
 {
     #Randomly select an enemy with a level matching the player's
+    $monsters = [System.Collections.ArrayList]::new()
     $monsterPath = ""
     $Rand = 0
     foreach ($file in Get-ChildItem -Path ($monsterDir + "\*.txt"))
@@ -271,6 +292,22 @@ function New-Enemy()
         {
             [void]$monsters.Add($file.Name)
         }
+    }
+    If ($monsters.count -eq 0)
+    {
+        #There are no monsters of the current level, so randomly select one
+        foreach ($file in Get-ChildItem -Path ($monsterDir + "\*.txt"))
+        {
+            $monsterPath = $monsterDir + "\" + $file.Name
+            $in = Get-Content -Raw -Path $monsterPath
+            $enemy = $in | ConvertFrom-Json
+            [void]$monsters.Add($file.Name)
+        }
+    }
+    If ($monsters.count -eq 0)
+    {
+        #There are no monsters at all
+        Write-Error "There are no monster resources"
     }
 
     If($monsters.count -eq 1) {$Rand = 0}
@@ -296,14 +333,84 @@ function New-Enemy()
     $Monster.Skills = $enemy.Skills
 }
 
+function Select-Skill()
+{
+    #Allows the player to select skills from the room's skill list
+    $index = 1
+    $in = ""
+    $choice = ""
+    $continue = $false
+    Write-Host "`nChoose a skill."
+    while ($continue -eq $false)
+    {
+        $index = 1
+        foreach($skill in $Room.Skills)
+        {
+            Write-Host $index "-" $skill
+            $index++
+        }
+        $in = Read-Host
+        If ($in -gt 0 -and $in -le $Room.skills.count)
+        {
+            $choice = $Room.Skills[$in - 1]
+            Write-Host "Choose" $choice"? (y/n)"
+            $in = Read-Host
+            If ($in -eq 'y')
+            {
+                [void]$Character.Skills.Add($choice)
+                $continue = $true
+            }
+        }
+        #Clear-Host
+    }
+}
+
+function Set-Skill($Family)
+{
+    #Using the room's skill family, randomly selects a subset of 3
+    #Checks if player already has skills, or if there are not enough skills
+    $skills = [System.Collections.ArrayList]::new()
+    $skillPath = ""
+    $index = 3
+    $Rand = 0
+
+    foreach ($file in Get-ChildItem -Path ($skillDir + "\*.txt"))
+    {
+        $skillPath = $skillDir + "\" + $file.Name
+        $in = Get-Content -Raw -Path $skillPath
+        $skill= $in | ConvertFrom-Json
+        If ($skill.Family -eq $Family)
+        {
+            [void]$skills.Add($skill.Name)
+        }
+    }
+    while ($index -gt 0 -and $skills.count -gt 0)
+    {
+        If ($skills.count -eq 1) {$Rand = 0}
+        Else {$Rand = Get-Random -Minimum 0 -Maximum ($skills.count - 1)}
+        If ($Character.Skills.Contains($skills[$Rand]))
+        {
+            $skills.RemoveAt($Rand)
+        }
+        Else
+        {
+            [void]$Room.Skills.Add($skills[$Rand])
+            $skills.RemoveAt($Rand)
+        }
+        $index--
+    }
+}
+
 function New-Room()
 {
     #Room may have a special feature, and/or monsters
     #Randomly select a room - 20% chance of a shrine
+    $rooms = [System.Collections.ArrayList]::new()
+    $Room.Skills = [System.Collections.ArrayList]::new()
     $Rand = Get-Random -Minimum 1 -Maximum 100
     $roomPath = ""
 
-    If($Rand -le 20)
+    If($Rand -le 100)
     {
         #Generate a shrine room
         foreach ($file in Get-ChildItem -Path ($shrineDir + "\*.txt"))
@@ -330,8 +437,12 @@ function New-Room()
     $file = $in | ConvertFrom-Json
     $Room.Text = $file.Text
     $Room.Monster = $file.Monster
-    $Room.Skills = $file.Skills
+    $Room.SkillFamily = $file.SkillFamily
     #Populate the skills array of the room
+    If (!$Room.SkillFamily -eq "")
+    {
+        Set-Skill -Family $Room.SkillFamily
+    }
     #Generate an enemy
     If ($Room.Monster -eq $true)
     {
@@ -369,7 +480,6 @@ function Use-Skill($Name, $User, $TempUser, $Target, $TempTarget)
 {
     $skillPath = ""
     $stat = ""
-    $target = ""
     $Skill = [PSCustomObject]@{
         Name = ""
         Description = ""
@@ -388,7 +498,14 @@ function Use-Skill($Name, $User, $TempUser, $Target, $TempTarget)
     }
 
     #Find a skill file with the given name, import it, and evaluate
-    Write-Host "Using" $Name"!"
+    If ($User.Name -eq $Character.Name)
+    {
+        Write-Host "You use" $Name"!"
+    }
+    Else
+    {
+        Write-Host "The"$User.Name "uses" $Name"!"
+    }
     foreach($file in Get-ChildItem -Path ($skillDir + "\*.txt"))
     {
         #$skillPath = $skillDir + "\" + $file.Name
@@ -491,6 +608,7 @@ function Use-Skill($Name, $User, $TempUser, $Target, $TempTarget)
         #If the skill has a turn count greater than 0,
         #and targets a stat other than health or mana, 
         #create a (de)buff entry
+        $Damage -= ($Target.Defense + $TempTarget.Defense)
         switch ($Skill.TargetStat)
         {
             Health
@@ -521,13 +639,50 @@ function Use-Skill($Name, $User, $TempUser, $Target, $TempTarget)
             }
         }
     }
+    If ($Skill.Turns -eq 0)
+    {
+        If ($Skill.TargetStat -eq "Health" -or $Skill.TargetStat -eq "Mana")
+        {
+            Write-Host "It deals" $Damage "damage!"
+        }
+        Else
+        {
+            Write-Host $Skill.TargetStat "is reduced by" $Damage"!"
+        }
+    }
+    Else
+    {
+        Write-Host $Skill.TargetStat "will be reduced by" $Damage "for" $Skill.Turns "turns!"
+    }
     Read-Host
+}
+
+function Get-MonsterSkill($Turn)
+{
+    #Use the turn counter to choose a skill for the monster to use
+    $skillName = $Monster.Skills[$Turn % $Monster.Skills.count]
+    Use-Skill -Name $skillName -User $Monster -TempUser $MonsterTemp -Target $Character -TempTarget $CharacterTemp
+}
+
+function Grant-Level()
+{
+    #Increase the character's level by 1
+    $Character.Level++
+    Get-ExpToLevel -Level ($Character.Level + 1)
+    Write-Host "You leveled up to" $Character.Level"!"
+}
+
+function Step-Buffs()
+{
+    #Evaluates any buffs or debuffs currently active on a target
+    
 }
 
 function Start-Battle()
 {
     #Print UI elements and player skills onto the screen
     $continue = $false
+    $Turn = 0
 
     while ($CharacterTemp.Health -gt 0)
     {
@@ -539,7 +694,12 @@ function Start-Battle()
             If ($in -gt 0 -and $in -le $Character.Skills.count)
             {
                 Use-Skill -Name $Character.Skills[$in-1] -User $Character -TempUser $CharacterTemp -Target $Monster -TempTarget $MonsterTemp
+                If ($MonsterTemp.Health -gt 0)
+                {
+                    Get-MonsterSkill -Turn $Turn
+                }
                 $continue = $true
+                $Turn++
             }
             ElseIf ($in -eq 'm')
             {  
@@ -562,9 +722,9 @@ function Start-Battle()
             #Check for level-up
             If ($Character.Exp -ge $Character.NextLevel)
             {
-                $Character.Level++
-                $Character.NextLevel = Get-ExpToLevel -Level ($Character.Level + 1)
-                Write-Host "You leveled up to" $Character.Level"!"
+                Grant-Level
+                #Refill character health
+                $CharacterTemp.Health = $Character.Health
             }
             #Save the character
             Export-Character -Save $true
@@ -619,6 +779,16 @@ while ($continue -eq $false)
     {
         #Continue Game
         Resume-Game
+        If ($Character.Name -eq "")
+        {
+            Write-Host "Create a new character? (y/n)"
+            $in = Read-Host
+            If ($in -eq 'y')
+            {
+                New-Character
+            }
+            continue
+        }
         while ($continue -eq $false)
         {
             Write-Host "`n"
@@ -645,13 +815,24 @@ while ($continue -eq $false)
 $continue = $false
 #Start the game
 
-New-Room
-
-Write-Host "`n"
-$Room.Text
-If ($Room.Monster -eq $true)
+while ($Character.Health -gt 0)
 {
-    Write-Host "A" $Monster.Name "approaches!"
+    New-Room
+
+    Write-Host "`n"
+    $Room.Text
+    If ($Room.Monster -eq $true)
+    {
+        Write-Host "A" $Monster.Name "approaches!"
+        Read-Host
+        Start-Battle
+    }
+    If ($Room.Skills.Count -gt 0)
+    {
+        Select-Skill
+    }
+    Export-Character -Save $true
+
+    Write-Host "You continue to the next room..."
     Read-Host
-    Start-Battle
 }
