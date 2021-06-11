@@ -1,0 +1,5 @@
+{
+    "Monster":  true,
+    "Text":     "You are in a dark chamber of the dungeon.",
+    "SkillFamily":   ""
+}
