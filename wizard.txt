@@ -1,0 +1,11 @@
+{
+    "Name":     "Wizard",
+    "Health":   20,
+    "Mana":     10,
+    "Attack":   4,
+    "Defense":  4,
+    "Magic":    8,
+    "Skills":   [
+        "Fireball"
+    ]
+}
