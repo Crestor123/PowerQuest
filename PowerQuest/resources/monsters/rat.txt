@@ -1,12 +1,12 @@
 {
     "Name":     "Rat",
-    "Level":    "1",
-    "Health":   "15",
-    "curHealth":    "15",
-    "Attack":   "3",
-    "Defense": "2",
-    "Magic":    "0",
-    "Exp":  "5",
+    "Level":    1,
+    "Health":   15,
+    "curHealth":    15,
+    "Attack":   3,
+    "Defense": 5,
+    "Magic":    0,
+    "Exp":  5,
     "Skills":   [
         "Attack"
     ]    
