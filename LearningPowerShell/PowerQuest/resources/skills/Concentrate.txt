@@ -1,0 +1,12 @@
+{
+    "Name":         "Concentrate",
+    "Description":  "Increase Attack by a small amount",
+    "Type":         "Buff",
+    "Family":       "Martial",
+    "Stat":         "Magic",
+    "TargetStat":   "Attack",
+    "FlatDamage":   2,
+    "Multiplier":   1,
+    "Cost":         4,
+    "Turns":        3
+}

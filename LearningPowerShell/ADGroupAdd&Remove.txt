@@ -1,0 +1,19 @@
+function Add-UtkGroupMembers ($ADGroup, $CSVPath){
+    $targetGroup = Get-ADGroup -Identity $ADGroup
+    $ADusers = Import-Csv $CSVPath -Header NetId
+    ForEach ($ADuser in $ADusers) {
+        $ADuserName = $ADuser.NetId
+        $targetGroup | Add-ADGroupMember -Members $AduserName
+        Write-Host "$ADuserName added to $($targetGroup.Name)" -ForegroundColor Cyan
+    }
+}
+
+function Remove-UtkGroupMembers($ADGroup, $CSVPath) {
+    $targetGroup = Get-ADGroup -Identity $ADGroup
+    $ADusers = Import-Csv $CSVPath -Header NetId
+    ForEach ($ADuser in $ADusers) {
+        $ADuserName = $ADuser.NetId
+        $targetGroup | Remove-ADGroupMember -Members $AduserName -Confirm:$False
+        Write-Host "$ADuserName removed from $($targetGroup.Name)" -ForegroundColor Cyan
+    }
+}

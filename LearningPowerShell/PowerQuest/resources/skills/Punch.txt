@@ -1,0 +1,12 @@
+{
+    "Name":         "Punch",
+    "Description":  "Physical attack; modified by Attack stat",
+    "Type":         "Offensive",
+    "Family":       "Martial",
+    "Stat":         "Attack",
+    "TargetStat":   "Health",
+    "FlatDamage":   2,
+    "Multiplier":   1,
+    "Cost":         0,
+    "Turns":        0
+}
