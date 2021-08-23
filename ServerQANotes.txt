@@ -1,0 +1,10 @@
+QA Notes
+
+Check MAC 	- 	getmac /v	OR	help.utk.edu/whois
+Check IP	-	ipconfig
+
+DNS 		160.36.0.66	160.36.128.66
+
+\\hathor\labs\WinSG
+
+Ignore Backups
